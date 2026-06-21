@@ -21,10 +21,10 @@ use chrono_tz::Tz;
 use rand_distr::Distribution;
 use rand_distr::Normal;
 use serde_json::json;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{LazyLock, RwLock};
+use std::sync::{LazyLock, Mutex, RwLock};
 use tracing::info;
 use tracing::trace;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -40,6 +40,12 @@ const MAX_DELAY_MS: u64 = 60_000;
 static DIRECT_REQUEST_COUNT: AtomicU64 = AtomicU64::new(0);
 static ACTIVE_SESSIONS: LazyLock<RwLock<HashSet<String>>> =
     LazyLock::new(|| RwLock::new(HashSet::new()));
+// Per-key attempt counter for the `flaky` test tool. Keyed by the caller-
+// supplied `key` argument so back-to-back test sequences stay isolated; the
+// gateway re-sends identical arguments on each retry, so all attempts of one
+// logical call share a key and increment the same counter.
+static FLAKY_STATE: LazyLock<Mutex<HashMap<String, u64>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 // ============================================================================
 // Delay Helpers
@@ -389,7 +395,7 @@ fn mcp_validate_active_session(headers: &HeaderMap) -> Result<(), StatusCode> {
 
 fn mcp_tools_list_response(id: Option<&serde_json::Value>) -> Response {
     mcp_json_response(format!(
-        r#"{{"jsonrpc":"2.0","id":{},"result":{{"tools":[{{"name":"echo","description":"Echo back the provided message.","inputSchema":{{"type":"object","properties":{{"message":{{"type":"string"}},"delay":{{"type":"integer","minimum":0,"maximum":60000}},"delay_stddev":{{"type":"number","minimum":0}}}},"required":["message"]}}}},{{"name":"get_system_time","description":"Get current system time in the specified IANA timezone.","inputSchema":{{"type":"object","properties":{{"timezone":{{"type":"string"}}}}}}}},{{"name":"convert_time","description":"Convert a time value from a source IANA timezone to a target IANA timezone.","inputSchema":{{"type":"object","properties":{{"time":{{"type":"string"}},"source_timezone":{{"type":"string"}},"target_timezone":{{"type":"string"}}}},"required":["time","source_timezone","target_timezone"]}}}},{{"name":"schema_error","description":"Always returns isError=true.","inputSchema":{{"type":"object","properties":{{}}}},"outputSchema":{{"type":"object","properties":{{"recognitionId":{{"type":"string"}},"message":{{"type":"string"}}}},"required":["recognitionId"]}}}},{{"name":"schema_success","description":"Returns a JSON payload that conforms to the declared outputSchema.","inputSchema":{{"type":"object","properties":{{}}}},"outputSchema":{{"type":"object","properties":{{"recognitionId":{{"type":"string"}},"message":{{"type":"string"}}}},"required":["recognitionId"]}}}},{{"name":"get_stats","description":"Get server statistics including request count and uptime.","inputSchema":{{"type":"object","properties":{{}}}}}}]}}}}"#,
+        r#"{{"jsonrpc":"2.0","id":{},"result":{{"tools":[{{"name":"echo","description":"Echo back the provided message.","inputSchema":{{"type":"object","properties":{{"message":{{"type":"string"}},"delay":{{"type":"integer","minimum":0,"maximum":60000}},"delay_stddev":{{"type":"number","minimum":0}}}},"required":["message"]}}}},{{"name":"flaky","description":"Return isError=true for the first fail_times calls per key, then succeed (retry testing).","inputSchema":{{"type":"object","properties":{{"key":{{"type":"string"}},"fail_times":{{"type":"integer","minimum":0}}}},"required":["key"]}}}},{{"name":"get_system_time","description":"Get current system time in the specified IANA timezone.","inputSchema":{{"type":"object","properties":{{"timezone":{{"type":"string"}}}}}}}},{{"name":"convert_time","description":"Convert a time value from a source IANA timezone to a target IANA timezone.","inputSchema":{{"type":"object","properties":{{"time":{{"type":"string"}},"source_timezone":{{"type":"string"}},"target_timezone":{{"type":"string"}}}},"required":["time","source_timezone","target_timezone"]}}}},{{"name":"schema_error","description":"Always returns isError=true.","inputSchema":{{"type":"object","properties":{{}}}},"outputSchema":{{"type":"object","properties":{{"recognitionId":{{"type":"string"}},"message":{{"type":"string"}}}},"required":["recognitionId"]}}}},{{"name":"schema_success","description":"Returns a JSON payload that conforms to the declared outputSchema.","inputSchema":{{"type":"object","properties":{{}}}},"outputSchema":{{"type":"object","properties":{{"recognitionId":{{"type":"string"}},"message":{{"type":"string"}}}},"required":["recognitionId"]}}}},{{"name":"get_stats","description":"Get server statistics including request count and uptime.","inputSchema":{{"type":"object","properties":{{}}}}}}]}}}}"#,
         mcp_id_json(id)
     ))
 }
@@ -484,6 +490,41 @@ async fn mcp_tools_call_response(
                 ),
                 false,
             )
+        }
+        "flaky" => {
+            let Some(arguments) = mcp_arguments_object(id, arguments) else {
+                return mcp_invalid_params_response(id, "arguments must be an object");
+            };
+            let Some(key) = mcp_required_string(id, arguments, "key") else {
+                return mcp_invalid_params_response(id, "key must be a string");
+            };
+            let Some(fail_times) = mcp_optional_u64(id, arguments, "fail_times") else {
+                return mcp_invalid_params_response(id, "fail_times must be an unsigned integer");
+            };
+            let fail_times = fail_times.unwrap_or(0);
+
+            DIRECT_REQUEST_COUNT.fetch_add(1, Ordering::Relaxed);
+
+            let mut state = FLAKY_STATE.lock().unwrap();
+            let attempt = {
+                let counter = state.entry(key.to_string()).or_insert(0);
+                *counter += 1;
+                *counter
+            };
+            if attempt <= fail_times {
+                mcp_text_result_response(
+                    id,
+                    &format!("flaky transient failure (attempt {attempt}/{fail_times})"),
+                    true,
+                )
+            } else {
+                state.remove(key);
+                mcp_text_result_response(
+                    id,
+                    &format!("flaky recovered after {attempt} attempt(s)"),
+                    false,
+                )
+            }
         }
         _ => mcp_error_response(id, -32602, "Unknown tool", Some(json!({ "tool": name }))),
     }
