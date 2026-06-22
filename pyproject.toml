@@ -288,7 +288,7 @@ plugins = [
     "cpex-encoded-exfil-detection>=0.3.3",
     "cpex-pii-filter>=0.3.3",
     "cpex-rate-limiter>=0.1.4",
-    "cpex-retry-with-backoff>=0.3.3",
+    "cpex-retry-with-backoff>=0.3.1,<0.3.2",
     "cpex-secrets-detection>=0.3.4",
     "cpex-url-reputation>=0.3.2",
 ]
