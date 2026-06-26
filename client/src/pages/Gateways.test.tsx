@@ -47,6 +47,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn().mockResolvedValue({ servers: [] }),
     });
   });
@@ -64,6 +65,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: true,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -79,6 +81,7 @@ describe("Gateways", () => {
       error: { message: "Unable to load virtual servers" },
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -161,6 +164,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -227,6 +231,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -278,6 +283,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -337,6 +343,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -390,6 +397,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -441,6 +449,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -515,6 +524,7 @@ describe("Gateways", () => {
           error: null,
           isLoading: false,
           execute: vi.fn(),
+          setData: vi.fn(),
           refetch: vi.fn(),
         };
       }
@@ -538,6 +548,7 @@ describe("Gateways", () => {
           error: null,
           isLoading: false,
           execute: vi.fn(),
+          setData: vi.fn(),
           refetch: vi.fn(),
         };
       }
@@ -554,6 +565,7 @@ describe("Gateways", () => {
           error: null,
           isLoading: false,
           execute: vi.fn(),
+          setData: vi.fn(),
           refetch: vi.fn(),
         };
       }
@@ -570,6 +582,7 @@ describe("Gateways", () => {
           error: null,
           isLoading: false,
           execute: vi.fn(),
+          setData: vi.fn(),
           refetch: vi.fn(),
         };
       }
@@ -579,6 +592,7 @@ describe("Gateways", () => {
         error: null,
         isLoading: false,
         execute: vi.fn(),
+        setData: vi.fn(),
         refetch: vi.fn(),
       };
     });
@@ -695,6 +709,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch,
     });
 
@@ -767,6 +782,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch,
     });
 
@@ -831,6 +847,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch,
     });
 
@@ -884,6 +901,7 @@ describe("Gateways", () => {
       error: null,
       isLoading: false,
       execute: vi.fn(),
+      setData: vi.fn(),
       refetch: vi.fn(),
     });
 
@@ -942,6 +960,7 @@ describe("Gateways", () => {
           error: null,
           isLoading: false,
           execute: vi.fn(),
+          setData: vi.fn(),
           refetch: vi.fn(),
         };
       }
@@ -952,6 +971,7 @@ describe("Gateways", () => {
           error: { message: "Failed to fetch tools" },
           isLoading: false,
           execute: vi.fn(),
+          setData: vi.fn(),
           refetch: vi.fn(),
         };
       }
@@ -962,6 +982,7 @@ describe("Gateways", () => {
           error: { message: "Failed to fetch resources" },
           isLoading: false,
           execute: vi.fn(),
+          setData: vi.fn(),
           refetch: vi.fn(),
         };
       }
@@ -972,6 +993,7 @@ describe("Gateways", () => {
           error: { message: "Failed to fetch prompts" },
           isLoading: false,
           execute: vi.fn(),
+          setData: vi.fn(),
           refetch: vi.fn(),
         };
       }
@@ -981,6 +1003,7 @@ describe("Gateways", () => {
         error: null,
         isLoading: false,
         execute: vi.fn(),
+        setData: vi.fn(),
         refetch: vi.fn(),
       };
     });
